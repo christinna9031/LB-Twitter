@@ -13,7 +13,7 @@ You can Tweet, Retweet, Like and Retrieve Tweets from your Transmitter as well d
 * value 1 = text you want to Tweet (can contain links as well)      
 
 
-**Get Recent Tweets**      
+`Get Recent Tweets`   
 * incl_retweets = whether to include retweets, incl_replies = whether to include replies      
 * value1 = variable/stack to save the tweet(s) in
 * value2 = twitter screen name  (no spaces and no @)        
@@ -22,32 +22,32 @@ You can Tweet, Retweet, Like and Retrieve Tweets from your Transmitter as well d
 * your tweets will be saved in your variable and tweet IDs in variable_id               
 			
 			
-**Like a Tweet** 
+`Like a Tweet`
 * value1 = Tweet ID (can be retrieved from variable_id after you use "Recent Tweet")      
 
-**Retweet** 
+`Retweet`
 * value1 = Tweet ID (can be retrieved from variable_id after you use "Recent Tweet")       
 
 
-**Reply to a Tweet** 
+`Reply to a Tweet`
 * value1 = Tweet ID (can be retrieved from variable_id after you use "Recent Tweet")
 * value2 = empty
 * value 3 = text to reply with       
 
-**Monitor Tweets ON**      
+`Monitor Tweets ON`    
 Monitors any new tweets from the specified account and sends an extension trigger.      
 * value2 = twitter screen name (no spaces and no @)       
 * value3 = interval to check for new tweets (in seconds).    
 It will first retrieve 10 recent tweets. After that it will remember which one it has already retrieved and will only trigger with any new tweets. It will remember it even after you close Transmitter. the extension trigger name will be the same as the screen name (all lower case characters)       
 
-**Monitor Tweets OFF**      
+`Monitor Tweets OFF`     
 Turns off new tweets monitoring.
 * value2 = screen name you used in your Monitor Tweets ON command         
 
-**Tweet Trigger**         
+`Tweet Trigger`       
 Fires whenever there is a new tweet. The trigger is the same as the screen name you used in your Monitor Tweets ON button. Twitter API is delayed by a few minutes when retrieving any new tweets, so be aware of that.    
 
-**Rename**     
+`Rename`   
 Lets you rename your Twitter name
 * value1 = your new name
 
