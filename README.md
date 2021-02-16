@@ -7,7 +7,7 @@ Once you install the extension, go to your Transmitter - Twitter Tab. Click on C
 Fill out "Enter PIN" input field and click on Authenticate. If it says Success, you're all good to go.  
 You can Tweet, Retweet, Like and Retrieve Tweets from your Transmitter as well directly from the Receiver. 
 
-**The extension comes with premade buttons to make it easier to understand how it works: **
+**The extension comes with premade buttons to make it easier to understand how it works:**
 
 **Tweet it** 
 * value 1 = text you want to Tweet (can contain links as well)      
