@@ -9,7 +9,7 @@ You can Tweet, Retweet, Like and Retrieve Tweets from your Transmitter as well d
 
 **The extension comes with premade buttons to make it easier to understand how it works:**
 
-**Tweet it** 
+`Tweet it`
 * value 1 = text you want to Tweet (can contain links as well)      
 
 
@@ -47,7 +47,9 @@ Turns off new tweets monitoring.
 **Tweet Trigger**         
 Fires whenever there is a new tweet. The trigger is the same as the screen name you used in your Monitor Tweets ON button. Twitter API is delayed by a few minutes when retrieving any new tweets, so be aware of that.    
 
-**Rename** - lets you rename your Twitter name
+**Rename**     
+Lets you rename your Twitter name
+* value1 = your new name
 
 
 **How to install an extension:**
