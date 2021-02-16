@@ -1,0 +1,1048 @@
+[extension_name]
+Twitter
+[insert_external]
+<!--
+* @name: Timer, @version: 1.1, @author: Christinna#9031
+* -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/codebird@2.6.0/codebird.min.js"></script>
+<script> const codebird = new Codebird(); </script>
+<br>
+<div><b>Twitter Extension </b>
+	<div >
+        
+        <button type="button" id="TWcheckstatus" style="margin: 5px 0px"  onclick="LBTwitter('TWcheckstatus')">Check Status</button>  <button type="button" id="TWLogout" style="margin: 5px 0px"  onclick="LBTwitter('Logout')">Log Out</button>  <br>
+        <div id="TWauthenticate" style="display:none"> Please retrieve your PIN first: <button style="margin: 1px 0px" id="TWOpenURL" onclick="LBTwitter('GetURL1','open')">Open Twitter</button> <button style="margin: 0px 0px" id="TWCopyURL" onclick="LBTwitter('GetURL1','copy')">Copy Twitter URL</button> <br>
+            Enter PIN: <input type="password" name="password" id="TWPinfield" >
+            <button style="margin: 1px 0px" id="TWauth" onclick="LBTwitter('Authenticate')">Authenticate</button> <br><br>  </div>
+       
+            <form id="twittercontent"> <button type="button" style="margin: 2px 0px"  onclick="LBTwitter('TSLRecentTweet')">Show Recent Tweets</button>
+	Username: <input type="text" id="TSLRecentTweet"> Amount: <input type="number" min="0" max="50" id="Tweetamount">  <input type="checkbox" id="twinclretweets"> Retweets <input type="checkbox" id="twinclreplies"> Replies <br>
+    <button type="button" style="margin: 1px 0px"  onclick="LBTwitter('TSLTweet',document.getElementById('TSLTweet').value)">Tweet</button>  <input type="text" size="50" id="TSLTweet" > <button type="button"  onclick="LBTwitterClear()">Clear All</button></form> </div>
+    </div>
+
+
+    <div id="TwitterStatus" > </div> <br> <div id="TSLReturnTweets" >  </div>  
+    </div>
+[insert_command]
+lioranboardclient.send('{"type":"MESSAGE","topic":"ExtensionCommand","name":"Twitter","boxcount":6,"boxname1":"type|Post a Tweet|Recent Tweet|Retweet|Like|Reply|MonitorOn|MonitorOff|Rename|","boxtype1":"string","boxname2":"incl_retweets|true|false|","boxtype2":"string","boxname3":"incl_replies|true|false|","boxtype3":"string","boxname4":"value1","boxtype4":"string","boxname5":"value2","boxtype5":"string","boxname6":"value3","boxtype6":"string"}'); 
+[insert_hook]
+case "Twitter":{
+	LBTwitter (LioranBoardJSON.type,LioranBoardJSON.value1, LioranBoardJSON.value2, LioranBoardJSON.value3,LioranBoardJSON.incl_replies,LioranBoardJSON.incl_retweets)
+}break
+[insert_script]
+function LBTwitter(type, var1, var2, var3, replies, retweets) {
+
+    // sets up variables
+    const authtoken = localStorage.getItem('oauth_token');
+    const authsecret = localStorage.getItem('oauth_token_secret');
+    const e = document.querySelector("#TSLReturnTweets");
+    const d = document.querySelector("#TwitterStatus");
+    const authbutton = document.querySelector("#TWauth");
+    const var1_id = var1 + "_id"
+    const likeimg = "https://i.imgur.com/GhdrWli.png"
+    const unlikeimg = "https://i.imgur.com/HW0mxXv.png"
+    const retweetimg = "https://i.imgur.com/p9PU0hs.png"
+    const unretweetimg = "https://i.imgur.com/ytOYOkk.png"
+    const replyimg = "https://i.imgur.com/UTw8rp2.png"
+    var params, calltype, exclude_replies, include_rts, tweetInt, last_id
+    
+    //sets up Twitter app key (best to get your own developer account and change it to your own)
+    codebird.setConsumerKey("0ypJLCnrQx0Lo8LmeTD8ZvmAu", "8yw5qJfNb20yyy0jwl6HRVgpjYqsV4HQmNWeKrwzbE4Bgt1aK2");
+    
+    
+    //checks if user is logged in
+    
+     if (type=="Authenticate"){Auth()}
+    
+    //if user is logged in, proceed... 
+    else {
+      codebird.setToken(authtoken, authsecret);
+    
+      //checks what kind of request was made 
+      switch (type) {
+        case "Post a Tweet":
+        case "TSLTweet":
+          params = {status: var1};
+          calltype = "statuses_update"
+          TwitterAll()
+          break;
+        case "Retweet":
+          params = {id: var1};
+          calltype = "statuses_retweet_ID"
+          TwitterAll()
+          break;
+        case "like":
+        case "Like":
+          type = type.toLowerCase();
+          params = {id: var1};
+          calltype = "favorites_create"
+          TwitterAll()
+          break;
+        case "Recent Tweet":
+        case "TSLRecentTweet":
+          if (type == "TSLRecentTweet") {
+            var2 = document.querySelector("#TSLRecentTweet").value;
+            var3 = document.querySelector("#Tweetamount").value;
+            replies = document.querySelector("#twinclreplies").checked;
+            retweets = JSON.stringify(document.querySelector("#twinclretweets").checked);
+          } else {
+            lioranboardclient.send('{"type":"MESSAGE","topic":"DeleteStack","name":"' + var1 + '"}')
+            lioranboardclient.send('{"type":"MESSAGE","topic":"DeleteStack","name":"' + var1_id + '"}')
+          }
+          params = {
+            screen_name: var2,
+            count: var3,
+            exclude_replies: JSON.stringify(!replies),
+            include_rts: retweets,
+          };
+          if (var2 == "timeline") {
+            calltype = "statuses_homeTimeline"
+          } else {
+            calltype = "statuses_userTimeline"
+          }
+          TwitterAll()
+          break;
+        case "Untweet":
+          //Untweeting not supported by the library
+          break;
+        case "unlike":
+          params = {id: var1};
+          calltype = "favorites_destroy"
+          TwitterAll()
+          break;
+        case "ReplyClick":
+          TweetReply(var1, var2)
+          break;
+        case "Reply":
+          params = {id: var1};
+          calltype = "statuses_show_ID"
+          TwitterAll()
+          break;
+        case "TSLReply":
+          var text = document.querySelector("#TSLReply").value + " " + var2 
+          params = {
+            status: text,
+            in_reply_to_status_id: var1
+          };
+          calltype = "statuses_update"
+          TwitterAll()
+          break;
+        case "MonitorOn":
+        case "MonitorOff":
+          var2 = var2.toLowerCase()
+          MonitorTweets()
+          break;
+        case "TWcheckstatus":
+          params = {};
+          calltype = "account_verifyCredentials"
+          TwitterAll()
+          break;
+          case "GetURL1": 
+          GetURL1(var1)
+          break;
+          case "Logout":
+          codebird.logout
+          localStorage.setItem('oauth_token', null);
+          localStorage.setItem('oauth_token_secret', null);
+          let lgtbutton = document.querySelector("#TWLogout")
+          lgtbutton.innerHTML = "Logged out!"
+          break;
+          case "Rename":
+          calltype = "account_updateProfile"
+          params = {
+            name: var1,
+          };
+          TwitterAll()
+         
+      }
+    }
+    
+    
+    //handles all the Twitter API replies
+    function TwitterAll() {
+      codebird.__call(calltype, params, function(reply, rate, err) {
+        console.log(reply)
+        //Twitter API success call handler
+        if (reply.httpstatus == 200) {
+          d.innerHTML = ""
+     
+          //checks for errors since Twitter sometimes falsely sends 200 status for certain errors
+           if (reply.errors === undefined) {
+    
+            if (type == "TWcheckstatus") {
+            LBAlert("Twitter: Logged in as " + reply.screen_name)
+            let q = document.querySelector("#TWcheckstatus")
+            q.innerHTML = "Logged in as " + reply.screen_name
+            setTimeout(function() {
+              q.innerHTML = "Check Status"
+            }, 6000)
+          }
+    
+            //handles request to post a Tweet/Retweet
+            else if (type == "Post a Tweet" || type == "TSLTweet") {
+              StatusReply("Tweet has been posted!")
+              document.querySelector("#TSLTweet").value = " "
+            } else if (type == "Retweet") {
+              try {
+                document.getElementsByName("retweet" + var1)[0].src = unretweetimg
+              } catch (err) {}
+              LBAlert("Retweeted!")
+            }
+            //handles like/unlike requests
+            else if (type == "like" || type == "unlike") {
+              try {
+                let like = document.getElementsByName("like" + var1)[0]
+                like.src = eval(type + "img")
+                if (type == "unlike") {
+                  like.setAttribute("class", "like");
+                } else {
+                  like.setAttribute("class", "unlike")
+                }
+              } catch (err) {}
+              LBAlert("Tweet (un)liked!")
+            }
+            //handles reply requests
+            else if (type == "TSLReply" || type == "Replied") {
+              if (type == "TSLReply") {
+                document.querySelector("#ReplyDiv").remove()
+              }
+              StatusReply("Replied to Tweet!")
+            } else if (type == "Reply") {
+              type = "Replied"
+              params = {
+                status: var3 + " @" + reply.user.screen_name,
+                in_reply_to_status_id: var1
+              };
+              calltype = "statuses_update"
+              TwitterAll()
+            } else if (type == "Untweet") {
+              //not supported by the library
+            } 
+           else if (type == "Rename") {
+            StatusReply("Twitter name changed!")
+            } 
+                    
+            else if (type == "MonitorOn") {
+              NewTweetsCheck(reply)
+            } else {
+    
+              //checks whether any Tweets were found
+              if (reply.length > 0) {
+    
+                loadLatestTweet(reply)
+    
+              } //if no Tweets were found
+              else {
+                StatusReply("No Tweets found.")
+    
+              }
+            }
+          } else {
+            if (type == "TWcheckstatus") {
+            showauth()}
+            else{
+            ErrorMsg(reply)}
+          }
+        } else { //handles errors if response code is not 200
+    
+          if (type == "TWcheckstatus") {
+            showauth()
+          } else {
+            ErrorMsg(reply)
+          }
+        }
+      })
+    }
+    
+    //initiates new Tweet monitoring 
+    function MonitorTweets() {
+      if (type == "MonitorOff") {
+        clearInterval(TweetIntervals[var2])
+        //clear interval	
+      } else {
+        tweetInt = setInterval(function() {
+          let count = 10
+          params = {
+            screen_name: var2,
+            exclude_replies: JSON.stringify(!replies),
+            include_rts: retweets,
+            count: count
+          };
+    
+          calltype = "statuses_userTimeline"
+          try {
+            TweetIntervals[var2] = tweetInt
+          } catch (err) {
+            TweetIntervals = {}
+            TweetIntervals[var2] = tweetInt
+          }
+          TwitterAll()
+        }, (var3 * 1000))
+      }
+    }
+    
+    //checks for new Tweets for all the monitored accounts
+    function NewTweetsCheck(reply) {
+      last_id = localStorage.getItem(var2);
+      let trigger = (reply[0].user.screen_name).toLowerCase()
+      for (var i = (reply.length - 1); i >= 0; i--) {
+        let current_id = (reply[i].id_str)
+        if (current_id > last_id) {
+          localStorage.setItem(var2, current_id);
+          let created = parseDate(reply[i].created_at);
+          let createdDate = created.getDate() + '-' + (created.getMonth() + 1) + '-' + created.getFullYear() + ' at ' + created.getHours() + ':' + ((created.getMinutes() < 10 ? '0' : '') + created.getMinutes())
+          let text = ReplaceSymbols(reply[i].text)
+          lioranboardclient.send('{"type":"MESSAGE","topic":"ExtensionTrigger","trigger":"' + trigger + '","value1":"' + text + '", "value2":"' + reply[i].id + '","value3":"' + createdDate + '"}')
+        }
+      }
+    }
+    
+    //handler for status replies 
+    function StatusReply(text) {
+      d.innerHTML = "<i>" + text + "</i>"
+      lioranboardclient.send('{"type":"MESSAGE","topic":"AlertMessage","message":"' + text + '"}')
+      setTimeout(function() {
+        d.innerHTML = ""
+      }, 3000);
+    }
+    
+    //handler for all LB alerts
+    function LBAlert(text) {
+      lioranboardclient.send('{"type":"MESSAGE","topic":"AlertMessage","message":"' + text + '"}')
+    }
+    
+    //handler for reply requests
+    function TweetReply(id, username) {
+      try {
+        document.querySelector("#ReplyDiv").remove()
+      } catch (err) {
+        let replytd = document.getElementById("tdreply" + id)
+        let replydiv = document.createElement("div")
+        replydiv.id = "ReplyDiv"
+        replydiv.innerHTML = '<button type="button" style="margin: 2px 0px" onclick=LBTwitter("TSLReply","' + id + '","@' + username + '")>Reply</button> <input type="text" size="50" id="TSLReply">'
+        replytd.appendChild(replydiv)
+      }
+    }
+    
+    //parses Twitter URL
+    String.prototype.parseURL = function() {
+      return this.replace(/[A-Za-z]+:\/\/[A-Za-z0-9-_]+\.[A-Za-z0-9-_:%&~\?\/.=]+/g, function(url) {
+        return url.link(url);
+      });
+    };
+    
+    //parses Twitter username
+    String.prototype.parseUsername = function() {
+      return this.replace(/[@]+[A-Za-z0-9-_]+/g, function(u) {
+        let username = u.replace("@", "")
+        return u.link("http://twitter.com/" + username);
+      });
+    };
+    //parses all hashtags 
+    String.prototype.parseHashtag = function() {
+      return this.replace(/[#]+[A-Za-z0-9-_]+/g, function(t) {
+        let tag = t.replace("#", "%23")
+        return t.link("http://search.twitter.com/search?q=" + tag);
+      });
+    };
+    //parses dates
+    function parseDate(str) {
+      let v = str.split(' ');
+      return new Date(Date.parse(v[1] + " " + v[2] + ", " + v[5] + " " + v[3] + " UTC"));
+    }
+    
+    //loads new tweets and sets up a table
+    function loadLatestTweet(reply) {
+      try {
+        let removeTab = document.getElementById("twitterfeed")
+        let parentEl = removeTab.parentElement;
+        parentEl.removeChild(removeTab);
+      } catch (err) {}
+      var table = document.createElement("table")
+      table.id = "twitterfeed"
+      e.appendChild(table)
+    
+      for (var i = 0; i < reply.length; i++) {
+        let tweet = ""
+        if (type == "Recent Tweet") {
+          tweet = reply[i].text
+          if (var2 == "timeline" || var2 == "Timeline") {
+            tweet = reply[i].user.screen_name + ": " + tweet
+          }
+          tweet = ReplaceSymbols(tweet)
+          if (reply.length > 1) {
+            lioranboardclient.send('{"type":"MESSAGE","topic":"AddStack","name":"' + var1 + '","position":"top","value":"' + tweet + '"}')
+            lioranboardclient.send('{"type":"MESSAGE","topic":"AddStack","name":"' + var1_id + '","position":"top","value":"' + reply[i].id_str + '"}')
+          } else {
+            lioranboardclient.send('{"type":"MESSAGE","topic":"SetValue","valuename":"' + var1 + '","value":"' + tweet + '"}');
+            lioranboardclient.send('{"type":"MESSAGE","topic":"SetValue","valuename":"' + var1_id + '","value":"' + tweet + '"}');
+          }
+        }
+    
+        let created = parseDate(reply[i].created_at);
+        let createdDate = created.getDate() + '-' + (created.getMonth() + 1) + '-' + created.getFullYear() + ' at ' + created.getHours() + ':' + ((created.getMinutes() < 10 ? '0' : '') + created.getMinutes())
+        let retweetclass = "Retweet"
+        let username = ("@" + reply[i].user.screen_name).parseUsername()
+        let likeclass = "like"
+        let retweetsrc = retweetimg
+        let likesrc = unlikeimg
+        let profileimg = "<img src='" + reply[i].user.profile_image_url_https + "' style='display: block; margin-left: auto; margin-right: auto;'>"
+        let tweetreply = "<img class='ReplyClick' name='reply" + reply[i].id_str + "' id=" + reply[i].id_str + " onclick=LBTwitter(this.className,this.id,'" + reply[i].user.screen_name + "') src=" + replyimg + " height='12px' style='cursor:pointer'>"
+        if (reply[i].retweeted == true) {
+          retweetsrc = unretweetimg;
+          retweetclass = "Untweet"
+        }
+        if (reply[i].favorited == true) {
+          likesrc = likeimg;
+          likeclass = "unlike"
+        }
+        let retweet = "<img class=" + retweetclass + " name='retweet" + reply[i].id_str + "'   id=" + reply[i].id_str + " onclick=LBTwitter(this.className,this.id) src=" + retweetsrc + " height='12px' style='cursor:pointer'>"
+        let like = "<img class=" + likeclass + " name='like" + reply[i].id_str + "' id=" + reply[i].id_str + " onclick=LBTwitter(this.className,this.id) src=" + likesrc + " height='12px' style='cursor:pointer'>"
+    
+        tablearray = [
+          [reply[i].user.name, "&emsp;<i>" + username + "</i>&emsp;", createdDate, profileimg + "<br>"],
+          [(reply[i].text).parseURL().parseUsername().parseHashtag(), "", ""],
+          ["&nbsp;" + tweetreply + "&emsp;", retweet + "&emsp;", like + " "]
+        ]
+        tablearray.forEach(renderTable)
+      }
+    
+      //renders a table based on new tweets
+      function renderTable(element, index, array) {
+        let newtr = document.createElement("tr")
+        let newtd = document.createElement("td")
+        newtd.style.padding = "0px 5px"
+        if (index == 0) {
+          newtd.style.paddingTop = "5px"
+          let newtd2 = document.createElement("td")
+          newtd2.setAttribute("rowspan", "3")
+          newtd2.innerHTML = element[3]
+          newtr.appendChild(newtd2)
+        }
+    
+        if (index == 2) {
+          newtd.id = "tdreply" + reply[i].id_str
+        }
+    
+        newtd.innerHTML = element[0] + " " + element[1] + " " + element[2]
+        newtr.appendChild(newtd)
+        table.appendChild(newtr)
+      }
+    
+    }
+    
+    //displays various Twitter API errors (different formats)
+    function ErrorMsg(reply) {
+      var twitter_error
+    
+      try {
+        twitter_error = reply[0].error
+      } catch (err) {
+        try {
+          twitter_error = reply.errors[0].message
+        } catch (err) {
+          try {
+            twitter_error = reply.error
+          } catch (err) {
+            twitter_error = "Error."
+          }
+        }
+      }
+    
+      let errortext = "Twitter Error: " + twitter_error
+      d.innerHTML = "<i>" + errortext + "</i>"
+      lioranboardclient.send('{"type":"MESSAGE","topic":"AlertMessage","message":"' + errortext + '"}')
+    }
+    
+    //shows/hides div which contains auth forms 
+    function showauth() {
+      var x = document.getElementById("TWauthenticate");
+      if (x.style.display === "none") {
+        x.style.display = "block";
+      } else {
+        x.style.display = "none";
+      }
+    }
+    
+    
+    
+    
+    function GetURL1 (type){
+    if (type=="copy"){GetURL("copy")}
+    else {GetURL("open")}
+    }
+    
+    
+    
+    //gets Twitter auth url
+    function GetURL(type) {
+    
+    
+      codebird.__call("oauth_requestToken", {
+        oauth_callback: "oob"
+      }, function(
+        reply,
+        rate,
+        err
+      ) {
+        if (err) {
+          console.log("error response or timeout exceeded" + err.error);
+        }
+        if (reply) {
+          if (reply.errors && reply.errors["415"]) {
+            // check your callback URL
+            console.log(reply.errors["415"]);
+            return;
+          }
+          // stores the token
+          codebird.setToken(reply.oauth_token, reply.oauth_token_secret);
+    
+          // gets the authorize screen URL
+          codebird.__call("oauth_authorize", {}, function(auth_url) {
+            if (type == "open") { //opens the URL
+              window.codebird_auth = window.open(auth_url)
+            } else { //saves the URL to clipboard
+              let copyhelper = document.createElement("input");
+              copyhelper.className = 'copyhelper'
+              document.body.appendChild(copyhelper);
+              copyhelper.value = auth_url;
+              copyhelper.select();
+              document.execCommand("copy");
+              document.body.removeChild(copyhelper);
+              let clipbutton=document.querySelector("#TWCopyURL")
+              clipbutton.innerHTML = "Copied to Clipboard";
+              setTimeout(function(){clipbutton.innerHTML = "Copy Twitter URL"}, 5000);
+    
+            }
+    
+          });
+        }
+      });
+    }
+    
+    //authenticates user based on the PIN they entered 
+    function Auth() {
+      authbutton.innerHTML = "Authenticating..."
+    
+      // gets a request token
+      codebird.__call(
+        "oauth_accessToken", {
+          oauth_verifier: document.getElementById("TWPinfield").value
+        },
+        function(reply, rate, err) {
+          if (err) {
+            autherror()
+          }
+          if (reply) {
+            if (reply.httpstatus == 200) {
+    
+              codebird.setToken(reply.oauth_token, reply.oauth_token_secret);
+              localStorage.setItem('oauth_token', reply.oauth_token);
+              localStorage.setItem('oauth_token_secret', reply.oauth_token_secret);
+              authbutton.innerHTML = "Success!"
+              let lgtbutton = document.querySelector("#TWLogout")
+              lgtbutton.innerHTML = "Log out"
+              setTimeout(showauth, 5000);
+            } else {
+              autherror()
+            }
+          }
+        }
+      );
+    }
+    
+    //handler for auth errors
+    function autherror() {
+      authbutton.innerHTML = "Error! Please try again."
+      document.querySelector("#TWCopyURL").innerHTML = "Copy Twitter URL"
+      setTimeout(function() {
+        authbutton.innerHTML = "Authenticate"
+      }, 3500);
+    }
+    
+    //replaces some symbols in retrieved Tweets which LB doesn't like parsing
+    function ReplaceSymbols(tw) {
+      tw = tw.replace(/(?:\r\n|\r|\n)/g, '').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+      tw = tw.toString().replace(/"/g, "'").replace(/\//g, '/').replace(/\\/g, "\\\\")
+      return tw
+    }
+    }
+    
+    //clears all forms
+    function LBTwitterClear() {
+    document.forms["twittercontent"].reset();
+    try {
+      let removeTab = document.getElementById("twitterfeed")
+      let parentEl = removeTab.parentElement;
+      parentEl.removeChild(removeTab);
+    } catch (err) {}
+    }
+[insert_over]
+[buttons_0x3]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="rename "
+color="12632256.000000"
+button_id="460.000000"
+websocketdelay2="0.000000"
+websocketvalue8_2=""
+websocketvalue7_2=""
+websocketvalue6_2=""
+websocketvalue5_2="newname4787"
+websocketvalue4_2="true"
+websocketvalue3_2="true"
+websocketvalue2_2="Rename"
+websocketvalue1_2="Twitter"
+websocketaction2="71.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1=""
+websocketvalue4_1=""
+websocketvalue3_1=""
+websocketvalue2_1=""
+websocketvalue1_1="value1 = new name"
+websocketaction1="92.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="lets you change your Twitter name"
+websocketaction0="92.000000"
+[buttons_2x2]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="important"
+color="255.000000"
+button_id="459.000000"
+websocketdelay3="0.000000"
+websocketvalue8_3=""
+websocketvalue7_3=""
+websocketvalue6_3=""
+websocketvalue5_3=""
+websocketvalue4_3=""
+websocketvalue3_3=""
+websocketvalue2_3=""
+websocketvalue1_3="You can Tweet, Retweet, Like and Retrieve Tweets directly from Transmitter. "
+websocketaction3="92.000000"
+websocketdelay2="0.000000"
+websocketvalue8_2=""
+websocketvalue7_2=""
+websocketvalue6_2=""
+websocketvalue5_2=""
+websocketvalue4_2=""
+websocketvalue3_2=""
+websocketvalue2_2=""
+websocketvalue1_2="Fill out þEnter PINþ input field and click on Authenticate. If it says Success, you're all good to go. "
+websocketaction2="92.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1=""
+websocketvalue4_1=""
+websocketvalue3_1=""
+websocketvalue2_1=""
+websocketvalue1_1="Click on þCheck Statusþ and select Open or Copy Twitter URL. Copy your provided PIN. "
+websocketaction1="92.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="you need to go to your Transmitter first and authenticate your Twitter account"
+websocketaction0="92.000000"
+[buttons_1x2]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+pubsubaction+"
+picture=""
+text="tweet trigger"
+color="12632256.000000"
+button_id="456.000000"
+extensiontrigger0="nytimes"
+pubsubaction0="7.000000"
+pubsubqueue="0.000000"
+websocketdelay4="0.000000"
+websocketvalue8_4=""
+websocketvalue7_4=""
+websocketvalue6_4=""
+websocketvalue5_4=""
+websocketvalue4_4="false"
+websocketvalue3_4="Text: /$tweet_text$/, ID: /$tweet_id$/, Created at: /$tweet_date$/"
+websocketvalue2_4="top"
+websocketvalue1_4="nytweets"
+websocketaction4="73.000000"
+websocketdelay3="0.000000"
+websocketvalue8_3=""
+websocketvalue7_3=""
+websocketvalue6_3=""
+websocketvalue5_3=""
+websocketvalue4_3=""
+websocketvalue3_3="false"
+websocketvalue2_3="3"
+websocketvalue1_3="tweet_date"
+websocketaction3="35.000000"
+websocketdelay2="0.000000"
+websocketvalue8_2=""
+websocketvalue7_2=""
+websocketvalue6_2=""
+websocketvalue5_2=""
+websocketvalue4_2=""
+websocketvalue3_2="true"
+websocketvalue2_2="2"
+websocketvalue1_2="tweet_id"
+websocketaction2="35.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1=""
+websocketvalue4_1=""
+websocketvalue3_1="false"
+websocketvalue2_1="1"
+websocketvalue1_1="tweet_text"
+websocketaction1="35.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="Twitter API is delayed by a few minutes when retrieving any new tweets, so be aware of that."
+websocketaction0="92.000000"
+[buttons_0x2]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="monitor tweets # OFF"
+color="12632256.000000"
+button_id="453.000000"
+websocketdelay2="0.000000"
+websocketvalue8_2=""
+websocketvalue7_2=""
+websocketvalue6_2="nytimes"
+websocketvalue5_2=""
+websocketvalue4_2="true"
+websocketvalue3_2="true"
+websocketvalue2_2="MonitorOff"
+websocketvalue1_2="Twitter"
+websocketaction2="71.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1=""
+websocketvalue4_1=""
+websocketvalue3_1=""
+websocketvalue2_1=""
+websocketvalue1_1="value2 = screen name you used the first time"
+websocketaction1="92.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="turns off new tweets monitoring"
+websocketaction0="92.000000"
+[buttons_2x1]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="monitor tweets # ON"
+color="12632256.000000"
+button_id="458.000000"
+websocketdelay6="0.000000"
+websocketvalue8_6=""
+websocketvalue7_6="30"
+websocketvalue6_6="nytimes"
+websocketvalue5_6=""
+websocketvalue4_6="true"
+websocketvalue3_6="true"
+websocketvalue2_6="MonitorOn"
+websocketvalue1_6="Twitter"
+websocketaction6="71.000000"
+websocketdelay5="0.000000"
+websocketvalue8_5=""
+websocketvalue7_5=""
+websocketvalue6_5=""
+websocketvalue5_5=""
+websocketvalue4_5=""
+websocketvalue3_5=""
+websocketvalue2_5=""
+websocketvalue1_5="the extension trigger will be the same as screen name (all lower case characters) "
+websocketaction5="92.000000"
+websocketdelay4="0.000000"
+websocketvalue8_4=""
+websocketvalue7_4=""
+websocketvalue6_4=""
+websocketvalue5_4=""
+websocketvalue4_4=""
+websocketvalue3_4=""
+websocketvalue2_4=""
+websocketvalue1_4="--> and will only trigger with any new tweets. It will remember it even after you close Transmitter."
+websocketaction4="92.000000"
+websocketdelay3="0.000000"
+websocketvalue8_3=""
+websocketvalue7_3=""
+websocketvalue6_3=""
+websocketvalue5_3=""
+websocketvalue4_3=""
+websocketvalue3_3=""
+websocketvalue2_3=""
+websocketvalue1_3="It will first retrieve 10 recent tweets. After that it will remember which one it has already retrieved -->"
+websocketaction3="92.000000"
+websocketdelay2="0.000000"
+websocketvalue8_2=""
+websocketvalue7_2=""
+websocketvalue6_2=""
+websocketvalue5_2=""
+websocketvalue4_2=""
+websocketvalue3_2=""
+websocketvalue2_2=""
+websocketvalue1_2="value3 = interval to check for new tweets (in seconds)"
+websocketaction2="92.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1=""
+websocketvalue4_1=""
+websocketvalue3_1=""
+websocketvalue2_1=""
+websocketvalue1_1="value2 = twitter screen name (no spaces and no @)"
+websocketaction1="92.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="Monitors any new tweets from the specified account and sends an extension trigger."
+websocketaction0="92.000000"
+[buttons_1x1]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="reply to a tweet"
+color="12632256.000000"
+button_id="455.000000"
+websocketdelay2="0.000000"
+websocketvalue8_2=""
+websocketvalue7_2="This is a really cute bunny! "
+websocketvalue6_2=""
+websocketvalue5_2="1333355568719929344"
+websocketvalue4_2="true"
+websocketvalue3_2="true"
+websocketvalue2_2="Reply"
+websocketvalue1_2="Twitter"
+websocketaction2="71.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1=""
+websocketvalue4_1=""
+websocketvalue3_1=""
+websocketvalue2_1=""
+websocketvalue1_1="value2 = empty, value 3 = text to reply with "
+websocketaction1="92.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="value1 = Tweet ID (can be retrieved from variable_id after you use þRecent Tweetþ) "
+websocketaction0="92.000000"
+[buttons_0x1]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="retweet"
+color="12632256.000000"
+button_id="452.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1="1333355568719929344"
+websocketvalue4_1="true"
+websocketvalue3_1="true"
+websocketvalue2_1="Retweet"
+websocketvalue1_1="Twitter"
+websocketaction1="71.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="value1 = Tweet ID (can be retrieved from variable_id after you use þRecent Tweetþ) "
+websocketaction0="92.000000"
+[buttons_2x0]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="like a tweet"
+color="12632256.000000"
+button_id="457.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1="1333355568719929344"
+websocketvalue4_1="true"
+websocketvalue3_1="true"
+websocketvalue2_1="Like"
+websocketvalue1_1="Twitter"
+websocketaction1="71.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="value1 = Tweet ID (can be retrieved from variable_id after you use þRecent Tweetþ) "
+websocketaction0="92.000000"
+[buttons_1x0]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="get recent # tweets"
+color="12632256.000000"
+button_id="454.000000"
+websocketdelay5="0.000000"
+websocketvalue8_5=""
+websocketvalue7_5="10"
+websocketvalue6_5="nytimes"
+websocketvalue5_5="variable"
+websocketvalue4_5="true"
+websocketvalue3_5="true"
+websocketvalue2_5="Recent Tweet"
+websocketvalue1_5="Twitter"
+websocketaction5="71.000000"
+websocketdelay4="0.000000"
+websocketvalue8_4=""
+websocketvalue7_4=""
+websocketvalue6_4=""
+websocketvalue5_4=""
+websocketvalue4_4=""
+websocketvalue3_4=""
+websocketvalue2_4=""
+websocketvalue1_4="your tweets will be save in your variable and tweet IDs in variable_id "
+websocketaction4="92.000000"
+websocketdelay3="0.000000"
+websocketvalue8_3=""
+websocketvalue7_3=""
+websocketvalue6_3=""
+websocketvalue5_3=""
+websocketvalue4_3=""
+websocketvalue3_3=""
+websocketvalue2_3=""
+websocketvalue1_3="you can put þtimelineþ in value2 to retreat all tweets in your timeline "
+websocketaction3="92.000000"
+websocketdelay2="0.000000"
+websocketvalue8_2=""
+websocketvalue7_2=""
+websocketvalue6_2=""
+websocketvalue5_2=""
+websocketvalue4_2=""
+websocketvalue3_2=""
+websocketvalue2_2=""
+websocketvalue1_2="value3 = how many tweets to get (retweets and replies are still counted even when you select false)"
+websocketaction2="92.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1=""
+websocketvalue4_1=""
+websocketvalue3_1=""
+websocketvalue2_1=""
+websocketvalue1_1="value1 = variable/stack to save the tweet(s) in, value2 = twitter screen name  (no spaces and no @)"
+websocketaction1="92.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0="type = recent tweet, incl_retweets = whether to include retweets, incl_replies = whether to include replies"
+websocketaction0="92.000000"
+[buttons_0x0]
+activepress="0.000000"
+border_size="0.000000"
+combine="0.000000"
+type="websocketaction+"
+picture=""
+text="tweet it"
+color="12632256.000000"
+button_id="451.000000"
+websocketdelay1="0.000000"
+websocketvalue8_1=""
+websocketvalue7_1=""
+websocketvalue6_1=""
+websocketvalue5_1="It's a beautiful day today."
+websocketvalue4_1="true"
+websocketvalue3_1="true"
+websocketvalue2_1="Post a Tweet"
+websocketvalue1_1="Twitter"
+websocketaction1="71.000000"
+websocketdelay0="0.000000"
+websocketvalue8_0=""
+websocketvalue7_0=""
+websocketvalue6_0=""
+websocketvalue5_0=""
+websocketvalue4_0=""
+websocketvalue3_0=""
+websocketvalue2_0=""
+websocketvalue1_0=" type = post a tweet, value 1 = text. Ignore everything else. "
+websocketaction0="92.000000"
+[configs]
+name="Twitter"
+background_color="8947848.000000"
+grid_height="4.000000"
+grid_width="3.000000"
