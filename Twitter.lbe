@@ -47,6 +47,7 @@ function LBTwitter(type, var1, var2, var3, replies, retweets) {
     var params, calltype, exclude_replies, include_rts, tweetInt, last_id
     
     //sets up Twitter app key (best to get your own developer account and change it to your own)
+     codebird.setProxy("https://limitless-badlands-63196.herokuapp.com/");
     codebird.setConsumerKey("0ypJLCnrQx0Lo8LmeTD8ZvmAu", "8yw5qJfNb20yyy0jwl6HRVgpjYqsV4HQmNWeKrwzbE4Bgt1aK2");
     
     
