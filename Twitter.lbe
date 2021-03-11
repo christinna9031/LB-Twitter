@@ -2,7 +2,7 @@
 Twitter
 [insert_external]
 <!--
-* @name: Timer, @version: 1.1, @author: Christinna#9031
+* @name: Timer, @version: 1.1a, @author: Christinna#9031
 * -->
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/codebird@2.6.0/codebird.min.js"></script>
 <script> const codebird = new Codebird(); </script>
