@@ -8,8 +8,7 @@ Twitter
 <script> const codebird = new Codebird(); </script>
 <br>
 <div><b>Twitter Extension </b>
-	<div >
-        
+	<div>
         <button type="button" id="TWcheckstatus" style="margin: 5px 0px"  onclick="LBTwitter('TWcheckstatus')">Check Status</button>  <button type="button" id="TWLogout" style="margin: 5px 0px"  onclick="LBTwitter('Logout')">Log Out</button>  <br>
         <div id="TWauthenticate" style="display:none"> Please retrieve your PIN first: <button style="margin: 1px 0px" id="TWOpenURL" onclick="LBTwitter('GetURL1','open')">Open Twitter</button> <button style="margin: 0px 0px" id="TWCopyURL" onclick="LBTwitter('GetURL1','copy')">Copy Twitter URL</button> <br>
             Enter PIN: <input type="password" name="password" id="TWPinfield" >
@@ -19,10 +18,7 @@ Twitter
 	Username: <input type="text" id="TSLRecentTweet"> Amount: <input type="number" min="0" max="50" id="Tweetamount">  <input type="checkbox" id="twinclretweets"> Retweets <input type="checkbox" id="twinclreplies"> Replies <br>
     <button type="button" style="margin: 1px 0px"  onclick="LBTwitter('TSLTweet',document.getElementById('TSLTweet').value)">Tweet</button>  <input type="text" size="50" id="TSLTweet" > <button type="button"  onclick="LBTwitterClear()">Clear All</button></form> </div>
     </div>
-
-
     <div id="TwitterStatus" > </div> <br> <div id="TSLReturnTweets" >  </div>  
-    </div>
 [insert_command]
 lioranboardclient.send('{"type":"MESSAGE","topic":"ExtensionCommand","name":"Twitter","boxcount":6,"boxname1":"type|Post a Tweet|Recent Tweet|Retweet|Like|Reply|MonitorOn|MonitorOff|Rename|","boxtype1":"string","boxname2":"incl_retweets|true|false|","boxtype2":"string","boxname3":"incl_replies|true|false|","boxtype3":"string","boxname4":"value1","boxtype4":"string","boxname5":"value2","boxtype5":"string","boxname6":"value3","boxtype6":"string"}'); 
 [insert_hook]
@@ -47,7 +43,7 @@ function LBTwitter(type, var1, var2, var3, replies, retweets) {
     var params, calltype, exclude_replies, include_rts, tweetInt, last_id
     
     //sets up Twitter app key (best to get your own developer account and change it to your own)
-     codebird.setProxy("https://limitless-badlands-63196.herokuapp.com/");
+    // codebird.setProxy("https://limitless-badlands-63196.herokuapp.com/");
     codebird.setConsumerKey("0ypJLCnrQx0Lo8LmeTD8ZvmAu", "8yw5qJfNb20yyy0jwl6HRVgpjYqsV4HQmNWeKrwzbE4Bgt1aK2");
     
     
